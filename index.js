@@ -1,11 +1,21 @@
-var orders
-var productList;
-orders=JSON.parse(localStorage.getItem("product-list"))
-if(orders==null){
-  orders=[]
-}
-$("#count").text(orders.length)
 
+let orderList=JSON.parse(localStorage.getItem("product-list"))
+console.log("orderList==>",orderList)
+if(orderList==null){
+  orderList=[]
+}
+
+//Display count on cart
+function displayCount(){
+  let count=0;
+  for(i=0;i<orderList.length;i++){
+    count=count+orderList[i]["count"]
+  }
+  $("#count").text(count)
+}
+displayCount()
+
+//RenderCard on Homepage
 function renderCards(){
         let clothGrid=$("#clothing-grid")
         let accessoriesGrid=$("#accessories-grid")
@@ -44,6 +54,7 @@ function renderCards(){
 
 function renderHomepage(){
     cleanScreen()
+    renderSlider();
     let mainBlock=$("main")
     let homepage=$("<div>")
     homepage.attr("id","homepage")
@@ -65,18 +76,19 @@ function cleanScreen(){
 }
 
 
+//Render ProductDetailsPage
 
 var data="https://5d76bf96515d1a0014085cf9.mockapi.io/product/"
 function renderProductDetails(data,value){
   data=data+value;
   let mainBlock=$("main")
   cleanScreen()
-  
+  navigation()
   let detailsSection=$("<section>")
   detailsSection.attr("id","product")
   
     $.get(`${data}`,function(res){
-      var response=res;
+      let response=res;
       let leftColumn=$("<div>")
       leftColumn.addClass("left-column")
     
@@ -117,11 +129,19 @@ function renderProductDetails(data,value){
                         </div>
         
                     </div>
-                    <div id="add-to-cart" onclick=\'orderDetails(${JSON.stringify(response)})\' class="button-wrapper">
-                        <button>Add to Cart</button>
-                    </div>
         `
       )
+      let addToCart=$("<div>")
+      addToCart.attr("id","add-to-cart")
+      addToCart.addClass("button-wrapper")
+      addToCart.html(`<button>Add to Cart</button>`)
+        console.log("response",response)
+      addToCart.click(function(){
+        orderDetails(response)
+        
+      })
+      
+      rightColumn.append(addToCart)
       detailsSection.append(rightColumn)
       mainBlock.append(detailsSection)
       
@@ -147,56 +167,182 @@ function renderImage(photo,num){
   $(`#${num}`).addClass('active')
 
 }
-let orderList=[]
-if(localStorage.getItem("product-list")==null){
-  orderList=[]
-}
-else{
-  orderList=JSON.parse(localStorage.getItem("product-list"))
-}
+// orderList=[]
+// if(localStorage.getItem("product-list")==null){
+//   orderList=[]
+// }
+// else{
+//   orderList=JSON.parse(localStorage.getItem("product-list"))
+// }
 
 function orderDetails(data){
-  console.log(data)
+  // console.log("data enter")
+  // console.log(data)
+  navigation()
+  console.log(orderList)
   console.log(orderList.length)
-  if(orderList.length==0){
-    orderList.push(data);
-    orderList[0].count=1
-  }
-  else{
+  let position;
+  // if(orderList.length==0){
+  //   orderList.push(data);
+  //   orderList[0].count=1
+  // }
+  
   for(i=0;i<orderList.length;i++){
+    console.log(data["id"])
+    console.log(orderList[i]["id"])
     if(data["id"]==orderList[i]["id"]){
-      orderList[i].count=orderList[i].count+1
+      position=i
+      console.log("postion changed")
+      break
     }
     else{
-      console.log("hi")
-      orderList.push(data);
-      console.log(data)
-      orderList[i].count=1
+      position=-1  
+      console.log("postion didn't changed")    
     }
-  }
+  
 }
+  if(position>-1){
+    orderList[position].count=orderList[position].count+1;
+    console.log("counted")
+  }
+  else{
+    data.count=1
+    orderList.push(data);
+    console.log("added")
+  }
   localStorage.setItem("product-list",JSON.stringify(orderList))
   updateOrders(orderList)
-  updateCount(orderList.length)
+  updateCount(orderList)
+  console.log(orderList)
  }
 
  function updateCount(data){
-   $("#count").text(data)
-  
+   let count=0;
+   console.log(data)
+   
+   for(i=0;i<data.length;i++){
+     count=count+data[i].count;
+     
+   }
+   console.log("count",count)
+  $("#count").text(count);
  }
  function updateOrders(data){
-   orders=data;
-   console.log(orders)
+   orderList=data;
+  //  console.log(orders)
  }
 
  
 
 
 $("#cart").click(function(){
-  console.log(orderList)
-  let productIdArr=[]
-  for(i=0;i<orderList.length;i++){
-    productIdArr.push(orderList[i]["id"])
+  let checkOutData=JSON.parse(localStorage.getItem("product-list"))
+  console.log(checkOutData)
+  renderCheckOutPage(checkOutData)
+})
+
+function renderCheckOutPage(data){
+  cleanScreen()
+  navigation()
+  console.log(data)
+  if (data==null){
+    data=[]
   }
-  console.log(productIdArr)
+  let checkoutPage =$("<div>")
+  checkoutPage.attr("id","check-out-page")
+
+  checkoutPage.html(`<h1 id="main-heading">Checkout</h1>`)
+
+  let CheckOutContent=$("<div>")
+  CheckOutContent.attr("id","check-out-content")
+
+
+  let leftSection=$("<div>")
+  leftSection.attr("id","section-heading")
+  leftSection.html(` <h3 class="section-heading">Total Items: <Span>0</Span></h3>`)
+
+  let totalAmount=0;
+  
+  for(i=0;i<data.length;i++){
+    console.log(data.length)
+    totalAmount=totalAmount+(data[i].price*data[i].count);
+    let orderItems=$("<div>")
+    orderItems.addClass("order-item")
+    orderItems.html(`<div>
+    <img class="order-item-img"src=${data[i].preview} alt="">
+    </div>
+    <div>
+    <h3>
+        ${data[i].name}
+    </h3>
+    <p>x${data[i].count}</p>
+    <p>Amount: Rs <span id="item-count">${data[i].price}</span></p>
+    </div>`)
+    leftSection.append(orderItems)
+
+    
+  }
+
+
+  
+  let rightSection=$("<div>")
+  rightSection.addClass("right-section")
+  rightSection.html(`<div id="amount-box">
+  <h3 class="section-heading">Total Amount</h3>
+  <p>Amount: Rs <span id="total-amount">${totalAmount}</span></p>
+  <button id="btn-place-order">Place Order</button>
+  </div>`)
+
+
+
+  CheckOutContent.append(leftSection)
+  CheckOutContent.append(rightSection)
+  checkoutPage.append(CheckOutContent)
+  $("main").append(checkoutPage)
+  
+  $("#btn-place-order").click(function(){
+    cleanScreen()
+    navigation()
+    orderList=[]
+    localStorage.clear()
+   $("#count").html(0)
+    let mainBlock=$("main").html(`<div id="main-wrapper">
+    <div id="tick-wrapper">
+        <img src="https://test-hosting-8f9bf.web.app/assets/white-tick.png">
+    </div>
+    <h1 class="main-heading">Order Placed Successfully!!</h1>
+    <p class="section-heading">We have sent you an email with the order details</p>
+</div>`)
+  })
+  
+}
+
+function navigation(){
+  $(".home-link").attr("href","./index.html")
+}
+
+
+function renderSlider(){
+  $("main").html(`
+  <div class="contain">
+    <div id="owl-carousel" class="owl-carousel owl-theme">
+      <img src="https://imgur.com/KtGxwnN.png" class="item">
+      <img src="https://imgur.com/p0wdadG.png" class="item">
+      <img src="https://imgur.com/KtGxwnN.png" class="item">
+      <img src="https://imgur.com/p0wdadG.png" class="item">
+    </div>
+  </div>
+`)
+}
+
+
+ 
+$('#owl-carousel').owlCarousel({
+  loop: true,
+  margin: 30,
+  dots: true,
+  items: 1,
+  autoplay:true,
+  autoplayTimeout:5000,
+  autoplayHoverPause:true
 })
